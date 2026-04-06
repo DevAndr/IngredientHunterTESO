@@ -12,8 +12,13 @@ local BAGS_TO_SCAN = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK, BAG_VIRTUAL 
 local SV_DEFAULTS = {
     posX = nil,
     posY = nil,
+    trackerPosX = nil,
+    trackerPosY = nil,
+    trackerVisible = false,
+    trackerRecipeIndex = nil,
+    trackerComboIndex = 1,
     selectedSolventType = "potion",
-    selectedSolventIndex = nil, -- index into solvents of matching type; nil = highest tier
+    selectedSolventIndex = nil,
     lastRecipeIndex = nil,
 }
 
@@ -26,6 +31,9 @@ IH.selectedRecipe = nil
 IH.selectedCombo = 1
 IH.reagentLookup = {}   -- name -> reagent data
 IH.filteredRecipes = {}  -- indices into Data.recipes that match current filter
+IH.trackerRows = {}      -- tracker widget ingredient rows
+IH.trackerRecipe = nil   -- tracked recipe index
+IH.trackerCombo = 1      -- tracked combo index
 
 ---------------------------------------------------------
 -- Utility
@@ -79,6 +87,10 @@ function IH:UpdateSingleSlot(bagId, slotIndex)
     self:ScanInventory()
     if self.selectedRecipe then
         self:RefreshIngredientPanel()
+    end
+    -- Also refresh tracker widget if visible
+    if self.trackerRecipe and not IngredientHunterTracker:IsHidden() then
+        self:RefreshTracker()
     end
 end
 
@@ -465,6 +477,138 @@ function IH.OnSearchTextChanged()
 end
 
 ---------------------------------------------------------
+-- Tracker Widget
+---------------------------------------------------------
+
+function IH.TrackSelectedRecipe()
+    if not IH.selectedRecipe then
+        d("|cC89B3C[Ingredient Hunter]|r Select a recipe first!")
+        return
+    end
+    IH.trackerRecipe = IH.selectedRecipe
+    IH.trackerCombo = IH.selectedCombo
+    IH.sv.trackerRecipeIndex = IH.trackerRecipe
+    IH.sv.trackerComboIndex = IH.trackerCombo
+    IH.sv.trackerVisible = true
+    IH:RefreshTracker()
+    IngredientHunterTracker:SetHidden(false)
+end
+
+function IH.HideTracker()
+    IngredientHunterTracker:SetHidden(true)
+    IH.sv.trackerVisible = false
+end
+
+function IH.OnTrackerMoveStop()
+    local tracker = IngredientHunterTracker
+    if tracker and IH.sv then
+        local _, _, _, _, offsetX, offsetY = tracker:GetAnchor(0)
+        IH.sv.trackerPosX = offsetX
+        IH.sv.trackerPosY = offsetY
+    end
+end
+
+function IH:RestoreTrackerPosition()
+    local tracker = IngredientHunterTracker
+    if tracker and self.sv and self.sv.trackerPosX and self.sv.trackerPosY then
+        tracker:ClearAnchors()
+        tracker:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, self.sv.trackerPosX, self.sv.trackerPosY)
+    end
+end
+
+function IH:ClearTrackerRows()
+    for _, row in ipairs(self.trackerRows) do
+        row:SetHidden(true)
+        row:SetParent(GuiRoot)
+    end
+    self.trackerRows = {}
+end
+
+function IH:RefreshTracker()
+    if not self.trackerRecipe then return end
+    local recipe = IngredientHunter_Data.recipes[self.trackerRecipe]
+    if not recipe then return end
+
+    local tracker = IngredientHunterTracker
+
+    -- Title
+    local title = tracker:GetNamedChild("Title")
+    title:SetText(recipe.name)
+
+    -- Solvent
+    local solventLabel = tracker:GetNamedChild("Solvent")
+    local solvent = self:GetHighestSolvent(recipe.solventType)
+    if solvent then
+        local counts = self:GetItemCount(solvent.itemId)
+        local colorTag = counts.total > 0 and "|c4ADE80" or "|cFF4444"
+        solventLabel:SetText(string.format("%s: %s%d|r", solvent.name, colorTag, counts.total))
+    end
+
+    -- Clear old rows
+    self:ClearTrackerRows()
+
+    -- Get combo
+    local combo = recipe.reagentSets[self.trackerCombo]
+    if not combo then
+        combo = recipe.reagentSets[1]
+        self.trackerCombo = 1
+    end
+
+    local listControl = tracker:GetNamedChild("List")
+    local yOffset = 0
+
+    for i, reagentName in ipairs(combo) do
+        local reagent = self.reagentLookup[reagentName]
+        if reagent then
+            local row = CreateControl("IHTrackerRow" .. i, listControl, CT_CONTROL)
+            row:SetDimensions(250, 24)
+            row:SetAnchor(TOPLEFT, listControl, TOPLEFT, 0, yOffset)
+
+            -- Icon
+            local icon = CreateControl("IHTrackerRow" .. i .. "Icon", row, CT_TEXTURE)
+            icon:SetDimensions(20, 20)
+            icon:SetAnchor(LEFT, row, LEFT, 2, 0)
+            if reagent.icon and reagent.icon ~= "" then
+                icon:SetTexture(reagent.icon)
+            end
+
+            -- Name
+            local nameLabel = CreateControl("IHTrackerRow" .. i .. "Name", row, CT_LABEL)
+            nameLabel:SetFont("ZoFontGameSmall")
+            nameLabel:SetDimensions(130, 20)
+            nameLabel:SetAnchor(LEFT, icon, RIGHT, 4, 0)
+
+            -- Count
+            local countLabel = CreateControl("IHTrackerRow" .. i .. "Count", row, CT_LABEL)
+            countLabel:SetFont("ZoFontGameSmall")
+            countLabel:SetDimensions(80, 20)
+            countLabel:SetAnchor(RIGHT, row, RIGHT, -2, 0)
+            countLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+
+            local counts = self:GetItemCount(reagent.itemId)
+            nameLabel:SetText(reagent.name)
+
+            if counts.total > 0 then
+                nameLabel:SetColor(HexColor("DDDDDD"))
+                countLabel:SetColor(HexColor("4ADE80"))
+                countLabel:SetText(tostring(counts.total))
+            else
+                nameLabel:SetColor(HexColor("FF6666"))
+                countLabel:SetColor(HexColor("FF4444"))
+                countLabel:SetText("0")
+            end
+
+            table.insert(self.trackerRows, row)
+            yOffset = yOffset + 24
+        end
+    end
+
+    -- Resize tracker height to fit content
+    local totalHeight = 42 + yOffset + 8  -- title area + rows + padding
+    tracker:SetHeight(totalHeight)
+end
+
+---------------------------------------------------------
 -- Initialization
 ---------------------------------------------------------
 
@@ -487,6 +631,17 @@ function IH:Initialize()
     -- Restore last selected recipe
     if self.sv.lastRecipeIndex then
         self:SelectRecipe(self.sv.lastRecipeIndex)
+    end
+
+    -- Restore tracker
+    self:RestoreTrackerPosition()
+    if self.sv.trackerRecipeIndex then
+        self.trackerRecipe = self.sv.trackerRecipeIndex
+        self.trackerCombo = self.sv.trackerComboIndex or 1
+        self:RefreshTracker()
+        if self.sv.trackerVisible then
+            IngredientHunterTracker:SetHidden(false)
+        end
     end
 
     -- Register events

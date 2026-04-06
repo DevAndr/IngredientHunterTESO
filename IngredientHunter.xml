@@ -69,6 +69,23 @@
                     <Dimensions y="30" />
                 </Label>
 
+                <!-- Track button (pin recipe to tracker widget) -->
+                <Button name="$(parent)Track" mouseEnabled="true">
+                    <Dimensions x="60" y="22" />
+                    <Anchor point="TOPRIGHT" offsetX="-36" offsetY="5" />
+                    <OnClicked>IngredientHunter.TrackSelectedRecipe()</OnClicked>
+                    <Controls>
+                        <Backdrop name="$(parent)BG" centerColor="0F346080" edgeColor="C89B3C">
+                            <AnchorFill />
+                            <Edge edgeSize="1" />
+                        </Backdrop>
+                        <Label name="$(parent)Label" font="ZoFontGameSmall" color="4ADE80"
+                               text="TRACK" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                            <AnchorFill />
+                        </Label>
+                    </Controls>
+                </Button>
+
                 <!-- Close button -->
                 <Button name="$(parent)Close" mouseEnabled="true">
                     <Dimensions x="24" y="24" />
@@ -169,6 +186,58 @@
                     </Controls>
                 </Control>
 
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Tracker Widget - compact always-on-screen overlay -->
+        <TopLevelControl name="IngredientHunterTracker" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
+            <Dimensions x="260" y="200" />
+            <Anchor point="TOPRIGHT" offsetX="-20" offsetY="200" />
+
+            <OnMoveStop>IngredientHunter.OnTrackerMoveStop()</OnMoveStop>
+
+            <Controls>
+                <!-- Background -->
+                <Backdrop name="$(parent)BG" centerColor="1A1A2ECC" edgeColor="C89B3C88">
+                    <AnchorFill />
+                    <Edge edgeSize="1" />
+                </Backdrop>
+
+                <!-- Title / Recipe name -->
+                <Label name="$(parent)Title" font="ZoFontGameSmall" color="C89B3C"
+                       text="" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Anchor point="TOPLEFT" offsetX="8" offsetY="4" />
+                    <Anchor point="TOPRIGHT" offsetX="-28" offsetY="4" />
+                    <Dimensions y="20" />
+                </Label>
+
+                <!-- Close tracker button -->
+                <Button name="$(parent)Close" mouseEnabled="true">
+                    <Dimensions x="18" y="18" />
+                    <Anchor point="TOPRIGHT" offsetX="-4" offsetY="4" />
+                    <OnClicked>IngredientHunter.HideTracker()</OnClicked>
+                    <Controls>
+                        <Label name="$(parent)Label" font="ZoFontGameSmall" color="FF4444"
+                               text="X" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                            <AnchorFill />
+                        </Label>
+                    </Controls>
+                </Button>
+
+                <!-- Pin to track button (in main window) -->
+
+                <!-- Solvent line -->
+                <Label name="$(parent)Solvent" font="ZoFontGameSmall" color="AAAAAA"
+                       text="" horizontalAlignment="LEFT" verticalAlignment="TOP">
+                    <Anchor point="TOPLEFT" offsetX="8" offsetY="24" />
+                    <Dimensions x="240" y="16" />
+                </Label>
+
+                <!-- Ingredient list container -->
+                <Control name="$(parent)List">
+                    <Anchor point="TOPLEFT" offsetX="4" offsetY="42" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="-4" />
+                </Control>
             </Controls>
         </TopLevelControl>
 
