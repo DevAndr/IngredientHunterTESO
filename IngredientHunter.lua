@@ -34,6 +34,8 @@ IH.filteredRecipes = {}  -- indices into Data.recipes that match current filter
 IH.trackerRows = {}      -- tracker widget ingredient rows
 IH.trackerRecipe = nil   -- tracked recipe index
 IH.trackerCombo = 1      -- tracked combo index
+IH.controlId = 0         -- unique control name counter
+IH.recipeListBuilt = false
 
 ---------------------------------------------------------
 -- Utility
@@ -44,6 +46,11 @@ local function HexColor(hex)
     local g = tonumber(hex:sub(3,4), 16) / 255
     local b = tonumber(hex:sub(5,6), 16) / 255
     return r, g, b, 1
+end
+
+local function UniqueName(prefix)
+    IH.controlId = IH.controlId + 1
+    return prefix .. IH.controlId
 end
 
 ---------------------------------------------------------
@@ -134,6 +141,7 @@ end
 function IH:BuildRecipeList()
     local data = IngredientHunter_Data.recipes
     local scrollChild = IngredientHunterWindowLeftPanelScrollScrollChild
+    if not scrollChild then return end
 
     -- Clear old rows
     for _, row in ipairs(self.recipeRows) do
@@ -143,7 +151,7 @@ function IH:BuildRecipeList()
     self.recipeRows = {}
 
     for i, recipe in ipairs(data) do
-        local row = CreateControlFromVirtual("IngredientHunterRecipeRow" .. i, scrollChild, "IngredientHunter_RecipeRow")
+        local row = CreateControlFromVirtual(UniqueName("IH_RR_"), scrollChild, "IngredientHunter_RecipeRow")
         local nameLabel = row:GetNamedChild("Name")
         nameLabel:SetText(recipe.name)
 
@@ -182,6 +190,7 @@ function IH:BuildRecipeList()
     for i = 1, #data do
         table.insert(self.filteredRecipes, i)
     end
+    self.recipeListBuilt = true
 end
 
 function IH:FilterRecipes(searchText)
@@ -305,7 +314,7 @@ function IH:RefreshIngredientPanel()
     -- Show all valid combos summary below
     yOffset = yOffset + 10
     if numCombos > 1 then
-        local allCombosLabel = CreateControl("IngredientHunterAllCombos", scrollChild, CT_LABEL)
+        local allCombosLabel = CreateControl(UniqueName("IH_AC_"), scrollChild, CT_LABEL)
         allCombosLabel:SetFont("ZoFontGameSmall")
         allCombosLabel:SetColor(HexColor("666666"))
         allCombosLabel:SetText("--- All valid combinations ---")
@@ -319,7 +328,7 @@ function IH:RefreshIngredientPanel()
             local suffix = (ci == self.selectedCombo) and "|r" or ""
             local comboText = prefix .. table.concat(c, " + ") .. suffix
 
-            local label = CreateControl("IngredientHunterComboList" .. ci, scrollChild, CT_LABEL)
+            local label = CreateControl(UniqueName("IH_CL_"), scrollChild, CT_LABEL)
             label:SetFont("ZoFontGameSmall")
             label:SetColor(HexColor("AAAAAA"))
             label:SetText(comboText)
@@ -351,7 +360,7 @@ end
 
 function IH:CreateComboNav(scrollChild, yOffset, numCombos)
     -- Previous button
-    local prevBtn = CreateControl("IngredientHunterPrevCombo", scrollChild, CT_LABEL)
+    local prevBtn = CreateControl(UniqueName("IH_PB_"), scrollChild, CT_LABEL)
     prevBtn:SetFont("ZoFontGameBold")
     prevBtn:SetColor(HexColor("C89B3C"))
     prevBtn:SetText("<< Prev")
@@ -370,7 +379,7 @@ function IH:CreateComboNav(scrollChild, yOffset, numCombos)
     table.insert(self.ingredientRows, prevBtn)
 
     -- Next button
-    local nextBtn = CreateControl("IngredientHunterNextCombo", scrollChild, CT_LABEL)
+    local nextBtn = CreateControl(UniqueName("IH_NB_"), scrollChild, CT_LABEL)
     nextBtn:SetFont("ZoFontGameBold")
     nextBtn:SetColor(HexColor("C89B3C"))
     nextBtn:SetText("Next >>")
@@ -390,7 +399,7 @@ function IH:CreateComboNav(scrollChild, yOffset, numCombos)
 end
 
 function IH:CreateIngredientRow(scrollChild, index, reagent, yOffset)
-    local row = CreateControlFromVirtual("IngredientHunterIngRow" .. index, scrollChild, "IngredientHunter_IngredientRow")
+    local row = CreateControlFromVirtual(UniqueName("IH_IR_"), scrollChild, "IngredientHunter_IngredientRow")
     row:ClearAnchors()
     row:SetAnchor(TOPLEFT, scrollChild, TOPLEFT, 0, yOffset)
 
@@ -440,6 +449,9 @@ function IH.ToggleWindow()
         window:SetHidden(not window:IsHidden())
         if not window:IsHidden() then
             IH:ScanInventory()
+            if not IH.recipeListBuilt then
+                IH:BuildRecipeList()
+            end
             if IH.selectedRecipe then
                 IH:RefreshIngredientPanel()
             end
@@ -560,12 +572,12 @@ function IH:RefreshTracker()
     for i, reagentName in ipairs(combo) do
         local reagent = self.reagentLookup[reagentName]
         if reagent then
-            local row = CreateControl("IHTrackerRow" .. i, listControl, CT_CONTROL)
+            local row = CreateControl(UniqueName("IH_TR_"), listControl, CT_CONTROL)
             row:SetDimensions(250, 24)
             row:SetAnchor(TOPLEFT, listControl, TOPLEFT, 0, yOffset)
 
             -- Icon
-            local icon = CreateControl("IHTrackerRow" .. i .. "Icon", row, CT_TEXTURE)
+            local icon = CreateControl(UniqueName("IH_TI_"), row, CT_TEXTURE)
             icon:SetDimensions(20, 20)
             icon:SetAnchor(LEFT, row, LEFT, 2, 0)
             if reagent.icon and reagent.icon ~= "" then
@@ -573,13 +585,13 @@ function IH:RefreshTracker()
             end
 
             -- Name
-            local nameLabel = CreateControl("IHTrackerRow" .. i .. "Name", row, CT_LABEL)
+            local nameLabel = CreateControl(UniqueName("IH_TN_"), row, CT_LABEL)
             nameLabel:SetFont("ZoFontGameSmall")
             nameLabel:SetDimensions(130, 20)
             nameLabel:SetAnchor(LEFT, icon, RIGHT, 4, 0)
 
             -- Count
-            local countLabel = CreateControl("IHTrackerRow" .. i .. "Count", row, CT_LABEL)
+            local countLabel = CreateControl(UniqueName("IH_TC_"), row, CT_LABEL)
             countLabel:SetFont("ZoFontGameSmall")
             countLabel:SetDimensions(80, 20)
             countLabel:SetAnchor(RIGHT, row, RIGHT, -2, 0)
