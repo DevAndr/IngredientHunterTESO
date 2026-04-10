@@ -154,10 +154,31 @@ end
 -- Reagent Lookup
 ---------------------------------------------------------
 
+local function MakeItemLink(itemId)
+    -- Минимальная ссылка на предмет: ESO хранит иконки клиентски для всех известных предметов
+    return string.format("|H1:item:%d:1:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId)
+end
+
 function IH:BuildReagentLookup()
     self.reagentLookup = {}
     for _, reagent in ipairs(IngredientHunter_Data.reagents) do
+        -- Заполняем кэш иконок через ссылку на предмет (не нужно иметь предмет в инвентаре)
+        if not self.iconCache[reagent.itemId] then
+            local icon = GetItemLinkIcon(MakeItemLink(reagent.itemId))
+            if icon and icon ~= "" then
+                self.iconCache[reagent.itemId] = icon
+            end
+        end
         self.reagentLookup[reagent.name] = reagent
+    end
+    -- Заполняем кэш иконок для растворителей
+    for _, solvent in ipairs(IngredientHunter_Data.solvents) do
+        if not self.iconCache[solvent.itemId] then
+            local icon = GetItemLinkIcon(MakeItemLink(solvent.itemId))
+            if icon and icon ~= "" then
+                self.iconCache[solvent.itemId] = icon
+            end
+        end
     end
 end
 
@@ -461,7 +482,7 @@ function IH:CreateIngredientRow(parent, index, reagent, yOffset)
     row:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, yOffset)
 
     local icon = row:GetNamedChild("Icon")
-    local iconPath = self.iconCache[reagent.itemId] or reagent.icon or ""
+    local iconPath = self.iconCache[reagent.itemId] or ""
     if iconPath ~= "" then
         icon:SetTexture(iconPath)
     end
@@ -609,10 +630,6 @@ function IH:RefreshTracker()
         local counts = self:GetItemCount(solvent.itemId)
         local colorTag = counts.total > 0 and "|c4ADE80" or "|cFF4444"
         local solventIcon = self.iconCache[solvent.itemId] or ""
-        if solventIcon == "" then
-            local link = GetItemLink(BAG_VIRTUAL, solvent.itemId, LINK_STYLE_BRACKETS)
-            if link and link ~= "" then solventIcon = GetItemLinkIcon(link) or "" end
-        end
         local iconStr = solventIcon ~= "" and string.format("|t16:16:%s|t ", solventIcon) or ""
         solventLabel:SetText(string.format("%s%s: %s%d|r", iconStr, solvent.name, colorTag, counts.total))
     end
@@ -642,37 +659,22 @@ function IH:RefreshTracker()
             row:SetDimensions(248, 24)
             row:SetAnchor(TOPLEFT, container, TOPLEFT, 0, yOffset)
 
-            -- Иконка: берём из кэша (реальный путь из ESO), иначе из данных
-            local iconPath = self.iconCache[reagent.itemId] or reagent.icon or ""
-            -- Если иконки нет в кэше, пробуем получить через ссылку на предмет
-            if iconPath == "" then
-                local link = GetItemLink(BAG_VIRTUAL, reagent.itemId, LINK_STYLE_BRACKETS)
-                if link and link ~= "" then
-                    iconPath = GetItemLinkIcon(link) or ""
-                end
-            end
-            local iconLabel = CreateControl(UniqueName("IH_TI_"), row, CT_LABEL)
-            iconLabel:SetDimensions(22, 22)
-            iconLabel:SetAnchor(TOPLEFT, row, TOPLEFT, 0, 1)
-            if iconPath ~= "" then
-                iconLabel:SetText(string.format("|t22:22:%s|t", iconPath))
-            else
-                iconLabel:SetText("")
-            end
+            local iconPath = self.iconCache[reagent.itemId] or ""
+            local iconPrefix = iconPath ~= "" and string.format("|t20:20:%s|t ", iconPath) or ""
 
             local nameLabel = CreateControl(UniqueName("IH_TN_"), row, CT_LABEL)
             nameLabel:SetFont("ZoFontGameSmall")
-            nameLabel:SetDimensions(128, 22)
-            nameLabel:SetAnchor(TOPLEFT, iconLabel, TOPRIGHT, 2, 0)
+            nameLabel:SetDimensions(160, 22)
+            nameLabel:SetAnchor(TOPLEFT, row, TOPLEFT, 0, 1)
 
             local countLabel = CreateControl(UniqueName("IH_TC2_"), row, CT_LABEL)
             countLabel:SetFont("ZoFontGameSmall")
-            countLabel:SetDimensions(78, 22)
-            countLabel:SetAnchor(TOPRIGHT, row, TOPRIGHT, -2, 1)
+            countLabel:SetDimensions(80, 22)
+            countLabel:SetAnchor(TOPRIGHT, row, TOPRIGHT, 0, 1)
             countLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
             local counts = self:GetItemCount(reagent.itemId)
-            nameLabel:SetText(reagent.name)
+            nameLabel:SetText(iconPrefix .. reagent.name)
 
             if counts.total > 0 then
                 nameLabel:SetColor(HexColor("DDDDDD"))
@@ -705,6 +707,27 @@ function IH:Initialize()
     end
     SLASH_COMMANDS["/ingredienthunter"] = function()
         IH.ToggleWindow()
+    end
+    SLASH_COMMANDS["/ihicons"] = function()
+        d("|cC89B3C[IH Icons]|r Диагностика иконок:")
+        -- Тест 1: GetItemLinkIcon с ручной ссылкой
+        local testId = 30156
+        local link = MakeItemLink(testId)
+        local icon = GetItemLinkIcon(link)
+        d(string.format("  itemId %d -> GetItemLinkIcon: %s", testId, tostring(icon)))
+        -- Тест 2: иконки из кэша
+        local cacheCount = 0
+        for id, path in pairs(IH.iconCache) do
+            cacheCount = cacheCount + 1
+            if cacheCount <= 3 then
+                d(string.format("  cache[%d] = %s", id, tostring(path)))
+            end
+        end
+        d(string.format("  Всего в кэше: %d", cacheCount))
+        -- Тест 3: |t markup в чате
+        if icon and icon ~= "" then
+            d(string.format("  Тест иконки в чате: |t32:32:%s|t <- должна быть иконка", icon))
+        end
     end
     SLASH_COMMANDS["/ihdbg"] = function()
         local craftSlots = GetBagSize(BAG_VIRTUAL)
