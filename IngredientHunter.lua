@@ -167,9 +167,19 @@ end
 
 function IH:BuildRecipeList()
     local data = IngredientHunter_Data.recipes
-    -- Access the left panel directly by its global name (set by ESO XML loader)
     local leftPanel = IngredientHunterWindowLeftPanel
     if not leftPanel then return end
+
+    -- Create scroll container once
+    if not self.recipeScroll then
+        local scroll = CreateControlFromVirtual("IH_RecipeScroll", leftPanel, "ZO_ScrollContainer")
+        scroll:SetAnchor(TOPLEFT, leftPanel, TOPLEFT, 0, 0)
+        scroll:SetAnchor(BOTTOMRIGHT, leftPanel, BOTTOMRIGHT, 0, 0)
+        self.recipeScroll = scroll
+        self.recipeScrollChild = scroll:GetNamedChild("ScrollChild")
+    end
+
+    local scrollChild = self.recipeScrollChild
 
     -- Clear old rows
     for _, row in ipairs(self.recipeRows) do
@@ -179,7 +189,7 @@ function IH:BuildRecipeList()
     self.recipeRows = {}
 
     for i, recipe in ipairs(data) do
-        local row = CreateControlFromVirtual(UniqueName("IH_RR_"), leftPanel, "IngredientHunter_RecipeRow")
+        local row = CreateControlFromVirtual(UniqueName("IH_RR_"), scrollChild, "IngredientHunter_RecipeRow")
         local nameLabel = row:GetNamedChild("Name")
         nameLabel:SetText(recipe.name)
 
@@ -189,7 +199,8 @@ function IH:BuildRecipeList()
             nameLabel:SetColor(HexColor("DDDDDD"))
         end
 
-        row:SetAnchor(TOPLEFT, leftPanel, TOPLEFT, 0, (i - 1) * 28)
+        row:SetWidth(scrollChild:GetWidth() > 0 and scrollChild:GetWidth() or 210)
+        row:SetAnchor(TOPLEFT, scrollChild, TOPLEFT, 0, (i - 1) * 28)
 
         row:SetHandler("OnMouseEnter", function(control)
             local hl = control:GetNamedChild("Highlight")
@@ -211,6 +222,9 @@ function IH:BuildRecipeList()
         self.recipeRows[i] = row
     end
 
+    local totalHeight = #data * 28
+    scrollChild:SetHeight(totalHeight)
+
     self.filteredRecipes = {}
     for i = 1, #data do
         table.insert(self.filteredRecipes, i)
@@ -221,9 +235,9 @@ end
 function IH:FilterRecipes(searchText)
     searchText = searchText:lower()
     local data = IngredientHunter_Data.recipes
-    local leftPanel = IngredientHunterWindowLeftPanel
-    if not leftPanel then return end
+    if not self.recipeScrollChild then return end
 
+    local scrollChild = self.recipeScrollChild
     self.filteredRecipes = {}
     local visibleCount = 0
 
@@ -234,12 +248,14 @@ function IH:FilterRecipes(searchText)
             row:SetHidden(not match)
             if match then
                 row:ClearAnchors()
-                row:SetAnchor(TOPLEFT, leftPanel, TOPLEFT, 0, visibleCount * 28)
+                row:SetAnchor(TOPLEFT, scrollChild, TOPLEFT, 0, visibleCount * 28)
                 visibleCount = visibleCount + 1
                 table.insert(self.filteredRecipes, i)
             end
         end
     end
+
+    scrollChild:SetHeight(math.max(visibleCount * 28, 1))
 end
 
 ---------------------------------------------------------
