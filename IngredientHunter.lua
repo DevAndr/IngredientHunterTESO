@@ -33,9 +33,11 @@ IH.reagentLookup = {}
 IH.filteredRecipes = {}
 IH.trackerRows = {}
 IH.trackerRecipe = nil
+IH.trackerContainer = nil
 IH.trackerCombo = 1
 IH.controlId = 0
 IH.recipeListBuilt = false
+IH.iconCache = {}  -- itemId -> реальный путь иконки из ESO
 
 ---------------------------------------------------------
 -- Utility
@@ -78,6 +80,16 @@ function IH:ScanInventory()
                     entry.bank = entry.bank + stack
                 end
                 entry.total = entry.total + stack
+                -- Захватываем реальный путь иконки из ESO
+                if not self.iconCache[itemId] then
+                    local link = GetItemLink(bagId, slot, LINK_STYLE_BRACKETS)
+                    if link and link ~= "" then
+                        local icon = GetItemLinkIcon(link)
+                        if icon and icon ~= "" then
+                            self.iconCache[itemId] = icon
+                        end
+                    end
+                end
             end
         end
     end
@@ -96,6 +108,16 @@ function IH:ScanCraftBagKnownItems()
             end
             self.inventoryCache[itemId].craftBag = self.inventoryCache[itemId].craftBag + stack
             self.inventoryCache[itemId].total   = self.inventoryCache[itemId].total   + stack
+            -- В BAG_VIRTUAL slot == itemId
+            if not self.iconCache[itemId] then
+                local link = GetItemLink(BAG_VIRTUAL, itemId, LINK_STYLE_BRACKETS)
+                if link and link ~= "" then
+                    local icon = GetItemLinkIcon(link)
+                    if icon and icon ~= "" then
+                        self.iconCache[itemId] = icon
+                    end
+                end
+            end
         end
     end
 
@@ -265,7 +287,6 @@ end
 function IH:ClearIngredientRows()
     for _, row in ipairs(self.ingredientRows) do
         row:SetHidden(true)
-        row:SetParent(GuiRoot)
     end
     self.ingredientRows = {}
 end
@@ -440,8 +461,9 @@ function IH:CreateIngredientRow(parent, index, reagent, yOffset)
     row:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, yOffset)
 
     local icon = row:GetNamedChild("Icon")
-    if reagent.icon and reagent.icon ~= "" then
-        icon:SetTexture(reagent.icon)
+    local iconPath = self.iconCache[reagent.itemId] or reagent.icon or ""
+    if iconPath ~= "" then
+        icon:SetTexture(iconPath)
     end
 
     local nameLabel = row:GetNamedChild("Name")
@@ -449,16 +471,16 @@ function IH:CreateIngredientRow(parent, index, reagent, yOffset)
 
     local countLabel = row:GetNamedChild("Count")
     local counts = self:GetItemCount(reagent.itemId)
+    local clr = counts.total > 0 and "4ADE80" or "FF4444"
 
-    local countText
+    -- Compact format: total in color + short breakdown (С=сумка, Б=банк, В=верстак)
+    local detail
     if counts.craftBag > 0 then
-        countText = string.format("%d сумка | %d банк | %d верстак", counts.backpack, counts.bank, counts.craftBag)
+        detail = string.format("С%d Б%d В%d", counts.backpack, counts.bank, counts.craftBag)
     else
-        countText = string.format("%d сумка | %d банк", counts.backpack, counts.bank)
+        detail = string.format("С%d Б%d", counts.backpack, counts.bank)
     end
-
-    countLabel:SetText(string.format("%s (|c%s%d|r)", countText,
-        counts.total > 0 and "4ADE80" or "FF4444", counts.total))
+    countLabel:SetText(string.format("|c%s%d|r %s", clr, counts.total, detail))
 
     if counts.total > 0 then
         nameLabel:SetColor(HexColor("DDDDDD"))
@@ -563,9 +585,10 @@ function IH:RestoreTrackerPosition()
 end
 
 function IH:ClearTrackerRows()
-    for _, row in ipairs(self.trackerRows) do
-        row:SetHidden(true)
-        row:SetParent(GuiRoot)
+    -- Скрываем весь контейнер целиком — гарантированно скрывает все дочерние элементы
+    if self.trackerContainer then
+        self.trackerContainer:SetHidden(true)
+        self.trackerContainer = nil
     end
     self.trackerRows = {}
 end
@@ -585,7 +608,13 @@ function IH:RefreshTracker()
     if solvent then
         local counts = self:GetItemCount(solvent.itemId)
         local colorTag = counts.total > 0 and "|c4ADE80" or "|cFF4444"
-        solventLabel:SetText(string.format("%s: %s%d|r", solvent.name, colorTag, counts.total))
+        local solventIcon = self.iconCache[solvent.itemId] or ""
+        if solventIcon == "" then
+            local link = GetItemLink(BAG_VIRTUAL, solvent.itemId, LINK_STYLE_BRACKETS)
+            if link and link ~= "" then solventIcon = GetItemLinkIcon(link) or "" end
+        end
+        local iconStr = solventIcon ~= "" and string.format("|t16:16:%s|t ", solventIcon) or ""
+        solventLabel:SetText(string.format("%s%s: %s%d|r", iconStr, solvent.name, colorTag, counts.total))
     end
 
     self:ClearTrackerRows()
@@ -597,31 +626,49 @@ function IH:RefreshTracker()
     end
 
     local listControl = tracker:GetNamedChild("List")
+
+    -- Каждый раз создаём новый контейнер: старые строки остаются скрытыми в своём контейнере
+    local container = CreateControl(UniqueName("IH_TC_"), listControl, CT_CONTROL)
+    container:SetAnchor(TOPLEFT, listControl, TOPLEFT, 0, 0)
+    container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, 0, 0)
+    self.trackerContainer = container
+
     local yOffset = 0
 
     for i, reagentName in ipairs(combo) do
         local reagent = self.reagentLookup[reagentName]
         if reagent then
-            local row = CreateControl(UniqueName("IH_TR_"), listControl, CT_CONTROL)
-            row:SetDimensions(250, 24)
-            row:SetAnchor(TOPLEFT, listControl, TOPLEFT, 0, yOffset)
+            local row = CreateControl(UniqueName("IH_TR_"), container, CT_CONTROL)
+            row:SetDimensions(248, 24)
+            row:SetAnchor(TOPLEFT, container, TOPLEFT, 0, yOffset)
 
-            local icon = CreateControl(UniqueName("IH_TI_"), row, CT_TEXTURE)
-            icon:SetDimensions(20, 20)
-            icon:SetAnchor(LEFT, row, LEFT, 2, 0)
-            if reagent.icon and reagent.icon ~= "" then
-                icon:SetTexture(reagent.icon)
+            -- Иконка: берём из кэша (реальный путь из ESO), иначе из данных
+            local iconPath = self.iconCache[reagent.itemId] or reagent.icon or ""
+            -- Если иконки нет в кэше, пробуем получить через ссылку на предмет
+            if iconPath == "" then
+                local link = GetItemLink(BAG_VIRTUAL, reagent.itemId, LINK_STYLE_BRACKETS)
+                if link and link ~= "" then
+                    iconPath = GetItemLinkIcon(link) or ""
+                end
+            end
+            local iconLabel = CreateControl(UniqueName("IH_TI_"), row, CT_LABEL)
+            iconLabel:SetDimensions(22, 22)
+            iconLabel:SetAnchor(TOPLEFT, row, TOPLEFT, 0, 1)
+            if iconPath ~= "" then
+                iconLabel:SetText(string.format("|t22:22:%s|t", iconPath))
+            else
+                iconLabel:SetText("")
             end
 
             local nameLabel = CreateControl(UniqueName("IH_TN_"), row, CT_LABEL)
             nameLabel:SetFont("ZoFontGameSmall")
-            nameLabel:SetDimensions(130, 20)
-            nameLabel:SetAnchor(LEFT, icon, RIGHT, 4, 0)
+            nameLabel:SetDimensions(128, 22)
+            nameLabel:SetAnchor(TOPLEFT, iconLabel, TOPRIGHT, 2, 0)
 
-            local countLabel = CreateControl(UniqueName("IH_TC_"), row, CT_LABEL)
+            local countLabel = CreateControl(UniqueName("IH_TC2_"), row, CT_LABEL)
             countLabel:SetFont("ZoFontGameSmall")
-            countLabel:SetDimensions(80, 20)
-            countLabel:SetAnchor(RIGHT, row, RIGHT, -2, 0)
+            countLabel:SetDimensions(78, 22)
+            countLabel:SetAnchor(TOPRIGHT, row, TOPRIGHT, -2, 1)
             countLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
             local counts = self:GetItemCount(reagent.itemId)
