@@ -62,7 +62,7 @@
 
                 <!-- Title -->
                 <Label name="$(parent)Title" font="ZoFontWinH4" color="C89B3C"
-                       text="INGREDIENT HUNTER"
+                       text="ОХОТНИК ЗА ИНГРЕДИЕНТАМИ"
                        horizontalAlignment="CENTER" verticalAlignment="CENTER">
                     <Anchor point="TOPLEFT" offsetX="0" offsetY="2" />
                     <Anchor point="TOPRIGHT" offsetX="0" offsetY="2" />
@@ -80,7 +80,7 @@
                             <Edge edgeSize="1" />
                         </Backdrop>
                         <Label name="$(parent)Label" font="ZoFontGameSmall" color="4ADE80"
-                               text="TRACK" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                               text="СЛЕЖКА" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                             <AnchorFill />
                         </Label>
                     </Controls>
@@ -111,23 +111,11 @@
                     <OnTextChanged>IngredientHunter.OnSearchTextChanged()</OnTextChanged>
                 </EditBox>
 
-                <!-- Left panel: Recipe list scroll -->
-                <Control name="$(parent)LeftPanel">
+                <!-- Left panel: Recipe list (scroll child created in Lua) -->
+                <Control name="$(parent)LeftPanel" mouseEnabled="true">
                     <Anchor point="TOPLEFT" offsetX="8" offsetY="66" />
                     <Anchor point="BOTTOMLEFT" offsetX="0" offsetY="-8" />
                     <Dimensions x="230" />
-
-                    <Controls>
-                        <ScrollControl name="$(parent)Scroll" mouseEnabled="true">
-                            <AnchorFill />
-                            <Controls>
-                                <Control name="$(parent)ScrollChild">
-                                    <Anchor point="TOPLEFT" />
-                                    <Dimensions x="230" y="2000" />
-                                </Control>
-                            </Controls>
-                        </ScrollControl>
-                    </Controls>
                 </Control>
 
                 <!-- Vertical divider -->
@@ -172,17 +160,11 @@
                             <Dimensions x="370" y="18" />
                         </Label>
 
-                        <!-- Ingredient scroll -->
-                        <ScrollControl name="$(parent)IngredientScroll" mouseEnabled="true">
+                        <!-- Ingredient scroll (scroll child created in Lua) -->
+                        <Control name="$(parent)IngredientScroll" mouseEnabled="true">
                             <Anchor point="TOPLEFT" offsetX="0" offsetY="98" />
                             <Anchor point="BOTTOMRIGHT" offsetX="0" offsetY="0" />
-                            <Controls>
-                                <Control name="$(parent)ScrollChild">
-                                    <Anchor point="TOPLEFT" />
-                                    <Dimensions x="380" y="800" />
-                                </Control>
-                            </Controls>
-                        </ScrollControl>
+                        </Control>
                     </Controls>
                 </Control>
 
