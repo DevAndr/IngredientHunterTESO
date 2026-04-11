@@ -236,9 +236,9 @@ function IH:BuildRecipeList()
         nameLabel:SetText(recipe.name)
 
         if recipe.solventType == "poison" then
-            nameLabel:SetColor(HexColor("CC6666"))
+            nameLabel:SetColor(HexColor("AA4A4A"))
         else
-            nameLabel:SetColor(HexColor("DDDDDD"))
+            nameLabel:SetColor(HexColor("C8B99A"))
         end
 
         row:SetWidth(scrollChild:GetWidth() > 0 and scrollChild:GetWidth() or 210)
@@ -349,7 +349,7 @@ function IH:RefreshIngredientPanel()
     local solvent = self:GetHighestSolvent(recipe.solventType)
     if solvent then
         local counts = self:GetItemCount(solvent.itemId)
-        local colorTag = counts.total > 0 and "|c4ADE80" or "|cFF4444"
+        local colorTag = counts.total > 0 and "|c7DA85A" or "|cAA4444"
         IngredientHunterWindowRightPanelSolvent:SetText(
             string.format("Растворитель: %s  %s(%d)|r", solvent.name, colorTag, counts.total))
     else
@@ -397,7 +397,7 @@ function IH:RefreshIngredientPanel()
         yOffset = yOffset + 10
         local allCombosLabel = CreateControl(UniqueName("IH_AC_"), rightScroll, CT_LABEL)
         allCombosLabel:SetFont("ZoFontGameSmall")
-        allCombosLabel:SetColor(HexColor("666666"))
+        allCombosLabel:SetColor(HexColor("5A4A32"))
         allCombosLabel:SetText("--- Все комбинации ---")
         allCombosLabel:SetAnchor(TOPLEFT, rightScroll, TOPLEFT, 4, yOffset)
         allCombosLabel:SetDimensions(360, 18)
@@ -411,7 +411,7 @@ function IH:RefreshIngredientPanel()
 
             local label = CreateControl(UniqueName("IH_CL_"), rightScroll, CT_LABEL)
             label:SetFont("ZoFontGameSmall")
-            label:SetColor(HexColor("AAAAAA"))
+            label:SetColor(HexColor("9A8A6A"))
             label:SetText(comboText)
             label:SetAnchor(TOPLEFT, rightScroll, TOPLEFT, 4, yOffset)
             label:SetDimensions(360, 18)
@@ -425,10 +425,10 @@ function IH:RefreshIngredientPanel()
                 end
             end)
             label:SetHandler("OnMouseEnter", function(control)
-                control:SetColor(HexColor("FFFFFF"))
+                control:SetColor(HexColor("C89B3C"))
             end)
             label:SetHandler("OnMouseExit", function(control)
-                control:SetColor(HexColor("AAAAAA"))
+                control:SetColor(HexColor("9A8A6A"))
             end)
 
             table.insert(self.ingredientRows, label)
@@ -491,7 +491,7 @@ function IH:CreateIngredientRow(parent, index, reagent, yOffset)
 
     local countLabel = row:GetNamedChild("Count")
     local counts = self:GetItemCount(reagent.itemId)
-    local clr = counts.total > 0 and "4ADE80" or "FF4444"
+    local clr = counts.total > 0 and "7DA85A" or "AA4444"
 
     -- Compact format: total in color + short breakdown (С=сумка, Б=банк, В=верстак)
     local detail
@@ -503,9 +503,9 @@ function IH:CreateIngredientRow(parent, index, reagent, yOffset)
     countLabel:SetText(string.format("|c%s%d|r %s", clr, counts.total, detail))
 
     if counts.total > 0 then
-        nameLabel:SetColor(HexColor("DDDDDD"))
+        nameLabel:SetColor(HexColor("C8B99A"))
     else
-        nameLabel:SetColor(HexColor("FF6666"))
+        nameLabel:SetColor(HexColor("A05050"))
     end
 
     table.insert(self.ingredientRows, row)
@@ -627,7 +627,7 @@ function IH:RefreshTracker()
     local solvent = self:GetHighestSolvent(recipe.solventType)
     if solvent then
         local counts = self:GetItemCount(solvent.itemId)
-        local colorTag = counts.total > 0 and "|c4ADE80" or "|cFF4444"
+        local colorTag = counts.total > 0 and "|c7DA85A" or "|cAA4444"
         local solventIcon = self.iconCache[solvent.itemId] or ""
         local iconStr = solventIcon ~= "" and string.format("|t16:16:%s|t ", solventIcon) or ""
         solventLabel:SetText(string.format("%s%s: %s%d|r", iconStr, solvent.name, colorTag, counts.total))
@@ -676,12 +676,12 @@ function IH:RefreshTracker()
             nameLabel:SetText(iconPrefix .. reagent.name)
 
             if counts.total > 0 then
-                nameLabel:SetColor(HexColor("DDDDDD"))
-                countLabel:SetColor(HexColor("4ADE80"))
+                nameLabel:SetColor(HexColor("C8B99A"))
+                countLabel:SetColor(HexColor("7DA85A"))
                 countLabel:SetText(tostring(counts.total))
             else
-                nameLabel:SetColor(HexColor("FF6666"))
-                countLabel:SetColor(HexColor("FF4444"))
+                nameLabel:SetColor(HexColor("A05050"))
+                countLabel:SetColor(HexColor("AA4444"))
                 countLabel:SetText("0")
             end
 
