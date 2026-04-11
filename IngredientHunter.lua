@@ -6,7 +6,7 @@ local ADDON_NAME = "IngredientHunter"
 IngredientHunter = {}
 local IH = IngredientHunter
 
-local BAGS_TO_SCAN = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }
+local BAGS_TO_SCAN = { BAG_BACKPACK, BAG_BANK }
 
 -- Saved variables defaults
 local SV_DEFAULTS = {
