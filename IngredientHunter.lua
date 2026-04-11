@@ -101,13 +101,12 @@ end
 
 function IH:ScanCraftBagKnownItems()
     local function addCraftStack(itemId)
+        -- BAG_VIRTUAL — виртуальный суммарный вид всех материалов (рюкзак+банк+крафт-сумка).
+        -- Если предмет уже найден в физических сумках — пропускаем, иначе получим двойной счёт.
+        if self.inventoryCache[itemId] then return end
         local stack = GetSlotStackSize(BAG_VIRTUAL, itemId)
         if stack and stack > 0 then
-            if not self.inventoryCache[itemId] then
-                self.inventoryCache[itemId] = { backpack = 0, bank = 0, craftBag = 0, total = 0 }
-            end
-            self.inventoryCache[itemId].craftBag = self.inventoryCache[itemId].craftBag + stack
-            self.inventoryCache[itemId].total   = self.inventoryCache[itemId].total   + stack
+            self.inventoryCache[itemId] = { backpack = 0, bank = 0, craftBag = stack, total = stack }
             -- В BAG_VIRTUAL slot == itemId
             if not self.iconCache[itemId] then
                 local link = GetItemLink(BAG_VIRTUAL, itemId, LINK_STYLE_BRACKETS)
