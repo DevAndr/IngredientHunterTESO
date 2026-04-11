@@ -3,6 +3,7 @@
 ## Description: Browse alchemy recipes and track ingredient inventory.
 ## Author: One
 ## Version: 1.0.0
+## AddOnVersion: 1
 ## SavedVariables: IngredientHunterSV
 
 Data/Recipes.lua
