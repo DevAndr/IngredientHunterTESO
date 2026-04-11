@@ -690,7 +690,7 @@ function IH:RefreshTracker()
         end
     end
 
-    local totalHeight = 42 + yOffset + 8
+    local totalHeight = 52 + yOffset + 8
     tracker:SetHeight(totalHeight)
 end
 

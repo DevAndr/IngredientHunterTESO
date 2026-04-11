@@ -101,7 +101,7 @@
                     <OnClicked>IngredientHunter.ToggleWindow()</OnClicked>
                     <Controls>
                         <Label name="$(parent)Label" font="ZoFontGameBold" color="AA4444"
-                               text="✕" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                               text="X" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                             <AnchorFill />
                         </Label>
                     </Controls>
@@ -188,58 +188,66 @@
 
             <Controls>
                 <!-- Background -->
-                <Backdrop name="$(parent)BG" centerColor="100D08E6" edgeColor="6B4E1ACC">
+                <Backdrop name="$(parent)BG" centerColor="120E08F0" edgeColor="C89B3C">
                     <AnchorFill />
                     <Edge edgeSize="1" />
                 </Backdrop>
 
                 <!-- Title bar background -->
-                <Backdrop name="$(parent)TitleBar" centerColor="1C1509CC" edgeColor="00000000">
+                <Backdrop name="$(parent)TitleBar" centerColor="1E1709" edgeColor="00000000">
                     <Anchor point="TOPLEFT" offsetX="1" offsetY="1" />
                     <Anchor point="TOPRIGHT" offsetX="-1" offsetY="1" />
-                    <Dimensions y="22" />
+                    <Dimensions y="24" />
                     <Edge edgeSize="0" />
                 </Backdrop>
 
-                <!-- Title bar bottom border -->
-                <Backdrop name="$(parent)TitleBorder" centerColor="6B4E1A99" edgeColor="00000000">
-                    <Anchor point="TOPLEFT" offsetX="1" offsetY="23" />
-                    <Anchor point="TOPRIGHT" offsetX="-1" offsetY="23" />
+                <!-- Title bar bottom border (gold line) -->
+                <Backdrop name="$(parent)TitleBorder" centerColor="C89B3C88" edgeColor="00000000">
+                    <Anchor point="TOPLEFT" offsetX="1" offsetY="25" />
+                    <Anchor point="TOPRIGHT" offsetX="-1" offsetY="25" />
                     <Dimensions y="1" />
                     <Edge edgeSize="0" />
                 </Backdrop>
 
                 <!-- Title / Recipe name -->
-                <Label name="$(parent)Title" font="ZoFontGameSmall" color="C89B3C"
+                <Label name="$(parent)Title" font="ZoFontGame" color="C89B3C"
                        text="" horizontalAlignment="LEFT" verticalAlignment="CENTER">
-                    <Anchor point="TOPLEFT" offsetX="8" offsetY="3" />
-                    <Anchor point="TOPRIGHT" offsetX="-28" offsetY="3" />
-                    <Dimensions y="18" />
+                    <Anchor point="TOPLEFT" offsetX="8" offsetY="2" />
+                    <Anchor point="TOPRIGHT" offsetX="-26" offsetY="2" />
+                    <Dimensions y="22" />
                 </Label>
 
                 <!-- Close tracker button -->
                 <Button name="$(parent)Close" mouseEnabled="true">
-                    <Dimensions x="18" y="18" />
-                    <Anchor point="TOPRIGHT" offsetX="-4" offsetY="4" />
+                    <Dimensions x="20" y="20" />
+                    <Anchor point="TOPRIGHT" offsetX="-4" offsetY="3" />
                     <OnClicked>IngredientHunter.HideTracker()</OnClicked>
                     <Controls>
-                        <Label name="$(parent)Label" font="ZoFontGameSmall" color="AA4444"
-                               text="✕" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                        <Label name="$(parent)Label" font="ZoFontGameBold" color="AA4444"
+                               text="X" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                             <AnchorFill />
                         </Label>
                     </Controls>
                 </Button>
 
                 <!-- Solvent line -->
-                <Label name="$(parent)Solvent" font="ZoFontGameSmall" color="9A8A6A"
+                <Label name="$(parent)Solvent" font="ZoFontGameSmall" color="8A7860"
                        text="" horizontalAlignment="LEFT" verticalAlignment="TOP">
-                    <Anchor point="TOPLEFT" offsetX="8" offsetY="26" />
+                    <Anchor point="TOPLEFT" offsetX="8" offsetY="28" />
                     <Dimensions x="240" y="16" />
                 </Label>
 
+                <!-- Divider under solvent -->
+                <Backdrop name="$(parent)SolventBorder" centerColor="3A2C14" edgeColor="00000000">
+                    <Anchor point="TOPLEFT" offsetX="4" offsetY="46" />
+                    <Anchor point="TOPRIGHT" offsetX="-4" offsetY="46" />
+                    <Dimensions y="1" />
+                    <Edge edgeSize="0" />
+                </Backdrop>
+
                 <!-- Ingredient list container -->
                 <Control name="$(parent)List">
-                    <Anchor point="TOPLEFT" offsetX="4" offsetY="44" />
+                    <Anchor point="TOPLEFT" offsetX="4" offsetY="48" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="-4" />
                 </Control>
             </Controls>
