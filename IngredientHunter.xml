@@ -70,7 +70,7 @@
 
                 <!-- Title -->
                 <Label name="$(parent)Title" font="ZoFontWinH4" color="C89B3C"
-                       text="ОХОТНИК ЗА ИНГРЕДИЕНТАМИ"
+                       text=""
                        horizontalAlignment="CENTER" verticalAlignment="CENTER">
                     <Anchor point="TOPLEFT" offsetX="0" offsetY="2" />
                     <Anchor point="TOPRIGHT" offsetX="0" offsetY="2" />
@@ -88,7 +88,7 @@
                             <Edge edgeSize="1" />
                         </Backdrop>
                         <Label name="$(parent)Label" font="ZoFontGameSmall" color="7DA85A"
-                               text="СЛЕЖКА" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                               text="" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                             <AnchorFill />
                         </Label>
                     </Controls>

@@ -6,6 +6,7 @@
 ## AddOnVersion: 1
 ## SavedVariables: IngredientHunterSV
 
+Localization/Localization.lua
 Data/Recipes.lua
 IngredientHunter.xml
 IngredientHunter.lua

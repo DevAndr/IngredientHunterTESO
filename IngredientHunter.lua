@@ -20,7 +20,19 @@ local SV_DEFAULTS = {
     selectedSolventType = "potion",
     selectedSolventIndex = nil,
     lastRecipeIndex = nil,
+    lang = nil,  -- nil = auto-detect from ESO client locale
 }
+
+-- Localization shortcut (set in Initialize)
+IH.L = {}
+
+-- Translate a data name (reagent / solvent / effect / recipe)
+-- Returns the localized display name, or the original if no translation found.
+function IH:TR(category, name)
+    local map = self.L[category]
+    if map then return map[name] or name end
+    return name
+end
 
 -- State
 IH.sv = nil
@@ -241,6 +253,7 @@ function IH:BuildRecipeList()
             nameLabel:SetColor(HexColor("C8B99A"))
         end
 
+        nameLabel:SetText(IH:TR("recipe", recipe.name))
         row:SetWidth(scrollChild:GetWidth() > 0 and scrollChild:GetWidth() or 210)
         row:SetAnchor(TOPLEFT, scrollChild, TOPLEFT, 0, (i - 1) * 28)
 
@@ -340,10 +353,15 @@ function IH:RefreshIngredientPanel()
     if not recipe then return end
 
     -- Recipe name
-    IngredientHunterWindowRightPanelRecipeName:SetText(recipe.name)
+    IngredientHunterWindowRightPanelRecipeName:SetText(IH:TR("recipe", recipe.name))
 
     -- Effects
-    IngredientHunterWindowRightPanelEffects:SetText("Эффекты: " .. table.concat(recipe.effects, ", "))
+    local translatedEffects = {}
+    for _, eff in ipairs(recipe.effects) do
+        table.insert(translatedEffects, IH:TR("effect", eff))
+    end
+    IngredientHunterWindowRightPanelEffects:SetText(
+        IH.L.EFFECTS_LABEL .. table.concat(translatedEffects, ", "))
 
     -- Solvent
     local solvent = self:GetHighestSolvent(recipe.solventType)
@@ -351,16 +369,17 @@ function IH:RefreshIngredientPanel()
         local counts = self:GetItemCount(solvent.itemId)
         local colorTag = counts.total > 0 and "|c7DA85A" or "|cAA4444"
         IngredientHunterWindowRightPanelSolvent:SetText(
-            string.format("Растворитель: %s  %s(%d)|r", solvent.name, colorTag, counts.total))
+            string.format("%s%s  %s(%d)|r",
+                IH.L.SOLVENT_LABEL, IH:TR("solvent", solvent.name), colorTag, counts.total))
     else
-        IngredientHunterWindowRightPanelSolvent:SetText("Растворитель: ?")
+        IngredientHunterWindowRightPanelSolvent:SetText(IH.L.SOLVENT_UNKNOWN)
     end
 
     -- Combo label
     local numCombos = #recipe.reagentSets
     if numCombos > 1 then
         IngredientHunterWindowRightPanelComboLabel:SetText(
-            string.format("Комбинация %d / %d", self.selectedCombo, numCombos))
+            string.format(IH.L.COMBO_FORMAT, self.selectedCombo, numCombos))
     else
         IngredientHunterWindowRightPanelComboLabel:SetText("")
     end
@@ -398,7 +417,7 @@ function IH:RefreshIngredientPanel()
         local allCombosLabel = CreateControl(UniqueName("IH_AC_"), rightScroll, CT_LABEL)
         allCombosLabel:SetFont("ZoFontGameSmall")
         allCombosLabel:SetColor(HexColor("5A4A32"))
-        allCombosLabel:SetText("--- Все комбинации ---")
+        allCombosLabel:SetText(IH.L.ALL_COMBOS_HDR)
         allCombosLabel:SetAnchor(TOPLEFT, rightScroll, TOPLEFT, 4, yOffset)
         allCombosLabel:SetDimensions(360, 18)
         table.insert(self.ingredientRows, allCombosLabel)
@@ -407,7 +426,9 @@ function IH:RefreshIngredientPanel()
         for ci, c in ipairs(recipe.reagentSets) do
             local prefix = (ci == self.selectedCombo) and "|cC89B3C> " or "  "
             local suffix = (ci == self.selectedCombo) and "|r" or ""
-            local comboText = prefix .. table.concat(c, " + ") .. suffix
+            local translatedC = {}
+            for _, rn in ipairs(c) do table.insert(translatedC, IH:TR("reagent", rn)) end
+            local comboText = prefix .. table.concat(translatedC, " + ") .. suffix
 
             local label = CreateControl(UniqueName("IH_CL_"), rightScroll, CT_LABEL)
             label:SetFont("ZoFontGameSmall")
@@ -441,7 +462,7 @@ function IH:CreateComboNav(parent, yOffset, numCombos)
     local prevBtn = CreateControl(UniqueName("IH_PB_"), parent, CT_LABEL)
     prevBtn:SetFont("ZoFontGameBold")
     prevBtn:SetColor(HexColor("C89B3C"))
-    prevBtn:SetText("<< Пред")
+    prevBtn:SetText(IH.L.PREV_COMBO)
     prevBtn:SetAnchor(TOPLEFT, parent, TOPLEFT, 4, yOffset)
     prevBtn:SetDimensions(80, 28)
     prevBtn:SetMouseEnabled(true)
@@ -459,7 +480,7 @@ function IH:CreateComboNav(parent, yOffset, numCombos)
     local nextBtn = CreateControl(UniqueName("IH_NB_"), parent, CT_LABEL)
     nextBtn:SetFont("ZoFontGameBold")
     nextBtn:SetColor(HexColor("C89B3C"))
-    nextBtn:SetText("След >>")
+    nextBtn:SetText(IH.L.NEXT_COMBO)
     nextBtn:SetAnchor(TOPLEFT, parent, TOPLEFT, 100, yOffset)
     nextBtn:SetDimensions(80, 28)
     nextBtn:SetMouseEnabled(true)
@@ -487,18 +508,18 @@ function IH:CreateIngredientRow(parent, index, reagent, yOffset)
     end
 
     local nameLabel = row:GetNamedChild("Name")
-    nameLabel:SetText(reagent.name)
+    nameLabel:SetText(IH:TR("reagent", reagent.name))
 
     local countLabel = row:GetNamedChild("Count")
     local counts = self:GetItemCount(reagent.itemId)
     local clr = counts.total > 0 and "7DA85A" or "AA4444"
 
-    -- Compact format: total in color + short breakdown (С=сумка, Б=банк, В=верстак)
+    -- Compact format: total in color + short breakdown
     local detail
     if counts.craftBag > 0 then
-        detail = string.format("С%d Б%d В%d", counts.backpack, counts.bank, counts.craftBag)
+        detail = string.format(IH.L.BAG_FMT_3, counts.backpack, counts.bank, counts.craftBag)
     else
-        detail = string.format("С%d Б%d", counts.backpack, counts.bank)
+        detail = string.format(IH.L.BAG_FMT_2, counts.backpack, counts.bank)
     end
     countLabel:SetText(string.format("|c%s%d|r %s", clr, counts.total, detail))
 
@@ -570,7 +591,7 @@ end
 
 function IH.TrackSelectedRecipe()
     if not IH.selectedRecipe then
-        d("|cC89B3C[Охотник за ингредиентами]|r Сначала выберите рецепт!")
+        d(IH.L.MSG_PREFIX .. " " .. IH.L.MSG_SELECT_RECIPE)
         return
     end
     IH.trackerRecipe = IH.selectedRecipe
@@ -621,7 +642,7 @@ function IH:RefreshTracker()
     local tracker = IngredientHunterTracker
 
     local title = tracker:GetNamedChild("Title")
-    title:SetText(recipe.name)
+    title:SetText(IH:TR("recipe", recipe.name))
 
     local solventLabel = tracker:GetNamedChild("Solvent")
     local solvent = self:GetHighestSolvent(recipe.solventType)
@@ -630,7 +651,8 @@ function IH:RefreshTracker()
         local colorTag = counts.total > 0 and "|c7DA85A" or "|cAA4444"
         local solventIcon = self.iconCache[solvent.itemId] or ""
         local iconStr = solventIcon ~= "" and string.format("|t16:16:%s|t ", solventIcon) or ""
-        solventLabel:SetText(string.format("%s%s: %s%d|r", iconStr, solvent.name, colorTag, counts.total))
+        solventLabel:SetText(string.format("%s%s: %s%d|r",
+            iconStr, IH:TR("solvent", solvent.name), colorTag, counts.total))
     end
 
     self:ClearTrackerRows()
@@ -673,7 +695,7 @@ function IH:RefreshTracker()
             countLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
             local counts = self:GetItemCount(reagent.itemId)
-            nameLabel:SetText(iconPrefix .. reagent.name)
+            nameLabel:SetText(iconPrefix .. IH:TR("reagent", reagent.name))
 
             if counts.total > 0 then
                 nameLabel:SetColor(HexColor("C8B99A"))
@@ -695,11 +717,77 @@ function IH:RefreshTracker()
 end
 
 ---------------------------------------------------------
+-- Language
+---------------------------------------------------------
+
+function IH:ApplyLanguage(lang)
+    local strings = IngredientHunter_Strings
+    -- Resolve "auto" to actual locale
+    if not lang or lang == "auto" then
+        lang = strings._auto or "en"
+    end
+    if lang ~= "ru" and lang ~= "en" then lang = "en" end
+
+    self.L = strings[lang]
+    self.sv.lang = lang
+
+    -- Update window controls if already created
+    if IngredientHunterWindowTitle then
+        IngredientHunterWindowTitle:SetText(self.L.WINDOW_TITLE)
+    end
+    if IngredientHunterWindowTrackLabel then
+        IngredientHunterWindowTrackLabel:SetText(self.L.TRACK_BTN)
+    end
+    if self.langBtn then
+        self.langBtn:SetText(lang:upper())
+    end
+
+    -- Rebuild recipe list and refresh panels with new language
+    if self.recipeListBuilt then
+        self.recipeListBuilt = false
+        self:BuildRecipeList()
+        if self.selectedRecipe then
+            self:SelectRecipe(self.selectedRecipe)
+        end
+    end
+    if self.trackerRecipe then
+        self:RefreshTracker()
+    end
+end
+
+function IH:ToggleLanguage()
+    local current = self.sv.lang or IngredientHunter_Strings._auto or "en"
+    local next = (current == "ru") and "en" or "ru"
+    self:ApplyLanguage(next)
+end
+
+---------------------------------------------------------
 -- Initialization
 ---------------------------------------------------------
 
 function IH:Initialize()
     self.sv = ZO_SavedVars:NewAccountWide("IngredientHunterSV", 1, nil, SV_DEFAULTS)
+
+    -- Language toggle button in title bar (left side)
+    local titleBar = IngredientHunterWindowTitleBar
+    local langBtn = CreateControl(UniqueName("IH_LB_"), IngredientHunterWindow, CT_LABEL)
+    langBtn:SetFont("ZoFontGameSmall")
+    langBtn:SetDimensions(28, 22)
+    langBtn:SetAnchor(TOPLEFT, IngredientHunterWindow, TOPLEFT, 8, 5)
+    langBtn:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    langBtn:SetMouseEnabled(true)
+    langBtn:SetHandler("OnMouseUp", function(_, btn, upInside)
+        if upInside and btn == MOUSE_BUTTON_INDEX_LEFT then
+            IH:ToggleLanguage()
+        end
+    end)
+    langBtn:SetHandler("OnMouseEnter", function(c) c:SetColor(HexColor("C89B3C")) end)
+    langBtn:SetHandler("OnMouseExit",  function(c) c:SetColor(HexColor("8A7860")) end)
+    langBtn:SetColor(HexColor("8A7860"))
+    self.langBtn = langBtn
+
+    -- Apply language (from SavedVar or auto-detect)
+    self:ApplyLanguage(self.sv.lang)
 
     SLASH_COMMANDS["/ih"] = function()
         IH.ToggleWindow()
@@ -773,7 +861,7 @@ function IH:Initialize()
         zo_callLater(function() IH:OnInventoryChanged() end, 200)
     end)
 
-    d("|cC89B3C[Охотник за ингредиентами]|r Загружен. Используйте |c4ADE80/ih|r для открытия окна.")
+    d(self.L.MSG_PREFIX .. " " .. self.L.MSG_LOADED)
 end
 
 -- Addon loaded event
