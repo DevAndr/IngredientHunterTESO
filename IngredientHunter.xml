@@ -194,7 +194,7 @@
                 </Backdrop>
 
                 <!-- Title bar background -->
-                <Backdrop name="$(parent)TitleBar" centerColor="1E1709" edgeColor="00000000">
+                <Backdrop name="$(parent)TitleBar" centerColor="1E170999" edgeColor="00000000">
                     <Anchor point="TOPLEFT" offsetX="1" offsetY="1" />
                     <Anchor point="TOPRIGHT" offsetX="-1" offsetY="1" />
                     <Dimensions y="24" />
@@ -202,7 +202,7 @@
                 </Backdrop>
 
                 <!-- Title bar bottom border (gold line) -->
-                <Backdrop name="$(parent)TitleBorder" centerColor="C89B3C88" edgeColor="00000000">
+                <Backdrop name="$(parent)TitleBorder" centerColor="C89B3C" edgeColor="00000000">
                     <Anchor point="TOPLEFT" offsetX="1" offsetY="25" />
                     <Anchor point="TOPRIGHT" offsetX="-1" offsetY="25" />
                     <Dimensions y="1" />
